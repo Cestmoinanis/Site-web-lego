@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>· · · accès restreint · · ·</title>
+<style>
+  :root{
+    --rouge:#8a0000;
+    --rouge-vif:#ff1a1a;
+    --vert:#1f7a1f;
+    --fond:#040404;
+    --texte:#9a9a9a;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    height:100%;
+    background:var(--fond);
+    color:var(--texte);
+    font-family:"Courier New", Courier, monospace;
+    overflow:hidden;
+    cursor:crosshair;
+  }
+
+  /* grain / scanlines CRT */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.35) 3px,
+        rgba(0,0,0,0) 4px
+      );
+    pointer-events:none;
+    z-index:9000;
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.9) 100%);
+    pointer-events:none;
+    z-index:9001;
+  }
+
+  @keyframes flicker{
+    0%,19%,21%,23%,80%,100%{ opacity:1; }
+    20%,22%{ opacity:.4; }
+    55%{ opacity:.85; }
+  }
+  @keyframes glitch{
+    0%{ transform:translate(0); }
+    20%{ transform:translate(-2px,1px); }
+    40%{ transform:translate(2px,-1px); }
+    60%{ transform:translate(-1px,-1px); }
+    80%{ transform:translate(1px,1px); }
+    100%{ transform:translate(0); }
+  }
+  @keyframes pulse{
+    0%,100%{ text-shadow:0 0 4px var(--rouge), 0 0 12px var(--rouge); }
+    50%{ text-shadow:0 0 8px var(--rouge-vif), 0 0 26px var(--rouge-vif); }
+  }
+
+  .screen{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:24px;
+    text-align:center;
+    z-index:10;
+  }
+  .hidden{ display:none !important; }
+
+  /* ---------- LOGIN ---------- */
+  .top-warn{
+    position:absolute; top:14px; left:0; right:0;
+    font-size:11px; letter-spacing:3px;
+    color:#444; animation:flicker 4s infinite;
+  }
+  .sigil{
+    font-size:54px; color:var(--rouge);
+    animation:pulse 3s infinite;
+    margin-bottom:6px; user-select:none;
+  }
+  .title-login{
+    font-size:13px; letter-spacing:6px;
+    color:#777; margin-bottom:28px;
+    text-transform:uppercase;
+    animation:flicker 6s infinite;
+  }
+  .pin-label{
+    font-size:12px; letter-spacing:2px; color:#666;
+    margin-bottom:14px;
+  }
+  .pin{
+    width:220px; max-width:80vw;
+    background:#0a0a0a;
+    border:1px solid #2a2a2a;
+    color:var(--rouge-vif);
+    font-family:inherit;
+    font-size:30px; letter-spacing:16px; text-indent:16px;
+    text-align:center;
+    padding:14px 0;
+    outline:none;
+    box-shadow:inset 0 0 18px rgba(138,0,0,.4);
+    caret-color:var(--rouge-vif);
+  }
+  .pin:focus{ border-color:var(--rouge); }
+  .enter-btn{
+    margin-top:22px;
+    background:transparent;
+    border:1px solid var(--rouge);
+    color:var(--rouge-vif);
+    font-family:inherit;
+    font-size:13px; letter-spacing:4px;
+    padding:11px 30px;
+    cursor:pointer;
+    text-transform:uppercase;
+    transition:all .15s;
+  }
+  .enter-btn:hover{
+    background:var(--rouge);
+    color:#000;
+    box-shadow:0 0 18px var(--rouge);
+  }
+  .err{
+    margin-top:18px; min-height:18px;
+    color:var(--rouge-vif); font-size:12px; letter-spacing:1px;
+    animation:glitch .2s infinite;
+  }
+  .hint{
+    position:absolute; bottom:16px;
+    font-size:10px; color:#262626; letter-spacing:2px;
+  }
+
+  /* ---------- MAIN ---------- */
+  .welcome{
+    font-size:13px; letter-spacing:4px; color:#555;
+    margin-bottom:6px; text-transform:uppercase;
+  }
+  .numero{
+    font-size:46px; color:var(--rouge-vif);
+    letter-spacing:8px;
+    animation:pulse 2.5s infinite;
+    margin-bottom:4px;
+  }
+  .sub{
+    font-size:11px; color:#444; letter-spacing:3px;
+    margin-bottom:40px; max-width:520px; line-height:1.8;
+  }
+  .ctd-label{
+    font-size:12px; letter-spacing:5px; color:#6a6a6a;
+    margin-bottom:18px; text-transform:uppercase;
+    animation:flicker 5s infinite;
+  }
+  .countdown{
+    display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
+  }
+  .unit{
+    min-width:84px;
+    border:1px solid #1c1c1c;
+    background:#070707;
+    padding:14px 8px 10px;
+    box-shadow:inset 0 0 14px rgba(138,0,0,.25);
+  }
+  .unit .num{
+    font-size:40px; color:var(--rouge-vif);
+    text-shadow:0 0 8px var(--rouge);
+  }
+  .unit .lab{
+    font-size:9px; letter-spacing:2px; color:#555;
+    margin-top:6px; text-transform:uppercase;
+  }
+  .date-info{
+    margin-top:34px; font-size:11px; letter-spacing:2px; color:#3a3a3a;
+  }
+  .scroll-msg{
+    margin-top:30px; font-size:10px; color:#2e2e2e;
+    letter-spacing:1px; max-width:600px; line-height:2;
+  }
+
+  /* fin du compte à rebours */
+  .begun{
+    font-size:clamp(28px,8vw,86px);
+    color:var(--rouge-vif);
+    letter-spacing:10px;
+    animation:glitch .25s infinite, pulse 1.4s infinite;
+  }
+
+  /* ---------- EASTER EGG : VISAGE ---------- */
+  .face{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    z-index:5;                 /* derrière le contenu (.screen = z-index 10) */
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 1.1s ease;
+  }
+  .face svg{
+    width:min(78vh,78vw); height:auto;
+    filter:drop-shadow(0 0 60px #000);
+    transform:scale(.55);            /* loin au départ */
+    transition:transform .9s ease;
+    transform-origin:center 42%;
+  }
+  @keyframes faceTwitch{
+    0%,100%{ transform:translate(0,0) scale(1); }
+    25%{ transform:translate(-3px,2px) scale(1.008); }
+    50%{ transform:translate(2px,-2px) scale(.994); }
+    75%{ transform:translate(2px,3px) scale(1.004); }
+  }
+  .face.show{ animation:faceTwitch .16s infinite; }
+
+  /* ---------- ÉCRAN "PAS DE SIGNAL" (neige TV) ---------- */
+  #static{
+    position:fixed; inset:0;
+    width:100%; height:100%;
+    z-index:8800;              /* au-dessus de tout sauf scanlines/vignette */
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s;
+    image-rendering:pixelated;
+  }
+  #static.on{ opacity:1; }
+
+  /* ---------- FOULE EN FOND (silhouettes qui marchent) ---------- */
+  #crowd{
+    position:fixed; inset:0;
+    z-index:2;                 /* derrière le contenu et le visage */
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .walker{
+    position:absolute;
+    left:0;
+    will-change:transform;
+    animation-name:walkAcross;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+  }
+  .walker svg{
+    display:block; width:auto; height:100%;
+    animation-name:bob;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+  }
+  .walker svg path,.walker svg circle{ fill:#161616; }
+  @keyframes walkAcross{
+    from{ transform:translateX(-22vw); }
+    to{   transform:translateX(122vw); }
+  }
+  @keyframes bob{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-5px); }
+  }
+
+  /* logout discret */
+  .logout{
+    position:absolute; top:14px; right:16px;
+    background:none; border:none; color:#2c2c2c;
+    font-family:inherit; font-size:11px; letter-spacing:2px;
+    cursor:pointer;
+  }
+  .logout:hover{ color:var(--rouge); }
+</style>
+</head>
+<body>
+
+  <!-- ===== FOULE EN FOND ===== -->
+  <div id="crowd" aria-hidden="true"></div>
+
+  <!-- ===== NEIGE TV (pas de signal) ===== -->
+  <canvas id="static"></canvas>
+
+  <!-- ===== EASTER EGG : VISAGE EN FOND ===== -->
+  <div id="face" class="face" aria-hidden="true">
+    <svg viewBox="0 0 400 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="skin" cx="50%" cy="42%" r="62%">
+          <stop offset="0%" stop-color="#3a3431"/>
+          <stop offset="55%" stop-color="#1a1614"/>
+          <stop offset="100%" stop-color="#050403"/>
+        </radialGradient>
+        <radialGradient id="socket" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#000"/>
+          <stop offset="70%" stop-color="#000"/>
+          <stop offset="100%" stop-color="#120000"/>
+        </radialGradient>
+        <radialGradient id="iris" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff3b3b"/>
+          <stop offset="45%" stop-color="#8a0000"/>
+          <stop offset="100%" stop-color="#1a0000"/>
+        </radialGradient>
+      </defs>
+
+      <!-- crâne / visage -->
+      <path d="M200 18
+               C300 18 348 96 348 196
+               C348 286 320 360 270 418
+               C246 446 224 466 200 466
+               C176 466 154 446 130 418
+               C80 360 52 286 52 196
+               C52 96 100 18 200 18 Z"
+            fill="url(#skin)" stroke="#000" stroke-width="2"/>
+
+      <!-- orbites creuses -->
+      <ellipse cx="135" cy="200" rx="46" ry="56" fill="url(#socket)"/>
+      <ellipse cx="265" cy="200" rx="46" ry="56" fill="url(#socket)"/>
+
+      <!-- yeux rouges au fond des orbites -->
+      <circle cx="138" cy="208" r="13" fill="url(#iris)"/>
+      <circle cx="262" cy="208" r="13" fill="url(#iris)"/>
+      <circle cx="138" cy="208" r="4" fill="#000"/>
+      <circle cx="262" cy="208" r="4" fill="#000"/>
+
+      <!-- cernes / ombres sous les yeux -->
+      <path d="M95 250 Q135 280 178 252" fill="none" stroke="#000" stroke-width="6" opacity=".5"/>
+      <path d="M222 252 Q265 280 305 250" fill="none" stroke="#000" stroke-width="6" opacity=".5"/>
+
+      <!-- cavité nasale -->
+      <path d="M200 232 L182 312 Q200 326 218 312 Z" fill="#000" opacity=".92"/>
+
+      <!-- bouche cousue / béante -->
+      <path d="M120 372 Q200 432 280 372" fill="#000" stroke="#000" stroke-width="3"/>
+      <g stroke="#2a2422" stroke-width="3">
+        <line x1="138" y1="378" x2="138" y2="404"/>
+        <line x1="166" y1="388" x2="166" y2="418"/>
+        <line x1="200" y1="392" x2="200" y2="424"/>
+        <line x1="234" y1="388" x2="234" y2="418"/>
+        <line x1="262" y1="378" x2="262" y2="404"/>
+      </g>
+
+      <!-- fissures sur le front -->
+      <path d="M188 60 L196 120 L184 160" fill="none" stroke="#000" stroke-width="2" opacity=".55"/>
+      <path d="M250 70 L240 110" fill="none" stroke="#000" stroke-width="2" opacity=".45"/>
+    </svg>
+  </div>
+
+  <!-- ===== ÉCRAN LOGIN ===== -->
+  <div id="login" class="screen">
+    <div class="top-warn">// connexion non sécurisée — votre identité a été enregistrée //</div>
+    <div class="sigil">✛</div>
+    <div class="title-login">·· entrez le code ··</div>
+    <div class="pin-label">code d'accès requis</div>
+    <input id="pin" class="pin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="····">
+    <button id="enter" class="enter-btn">entrer</button>
+    <div id="err" class="err"></div>
+    <div class="hint">si vous n'avez pas été invité · partez · maintenant</div>
+  </div>
+
+  <!-- ===== ÉCRAN PRINCIPAL ===== -->
+  <div id="main" class="screen hidden">
+    <button id="logout" class="logout">[ déconnexion ]</button>
+    <div class="welcome">accès accordé</div>
+    <div class="numero" id="numero">BIENVENUE NUMÉRO 0000</div>
+    <div class="sub">vous avez été sélectionné. il n'y a pas de retour en arrière.<br>préparez-vous. ils comptent sur vous. ils vous regardent.</div>
+
+    <div id="ctdWrap">
+      <div class="ctd-label">le jeu commence dans</div>
+      <div class="countdown">
+        <div class="unit"><div class="num" id="d">00</div><div class="lab">jours</div></div>
+        <div class="unit"><div class="num" id="h">00</div><div class="lab">heures</div></div>
+        <div class="unit"><div class="num" id="m">00</div><div class="lab">minutes</div></div>
+        <div class="unit"><div class="num" id="s">00</div><div class="lab">secondes</div></div>
+      </div>
+      <div class="date-info">// début du protocole : 28 juillet //</div>
+    </div>
+
+    <div id="begun" class="begun hidden">LE JEU COMMENCE</div>
+
+    <div class="scroll-msg">
+      n'éteignez pas votre écran. ne parlez à personne. ne faites confiance à personne.<br>
+      la règle n°1 : il n'y a pas de règles.
+    </div>
+  </div>
+
+<script>
+  // ---- CONFIG ----
+  const CODE = "0000";
+  // date de début du jeu : 28 juillet 2026, minuit
+  const TARGET = new Date("2026-07-28T00:00:00").getTime();
+
+  // ---- LOGIN ----
+  const loginEl  = document.getElementById("login");
+  const mainEl   = document.getElementById("main");
+  const pinEl    = document.getElementById("pin");
+  const enterEl  = document.getElementById("enter");
+  const errEl    = document.getElementById("err");
+  const numeroEl = document.getElementById("numero");
+  const faceEl   = document.getElementById("face");
+  const faceSvg  = faceEl.querySelector("svg");
+  const staticEl = document.getElementById("static");
+
+  // --- easter egg : le visage s'approche à chaque erreur ---
+  let faceTimer = null;
+  function flashFace(){
+    // 1re erreur = loin et léger ; 2e = plus proche et plus net
+    const scale     = 0.55 + attempt * 0.28;   // s'approche
+    const intensite = Math.min(0.14 + attempt * 0.16, 0.6);
+    const duree     = 900 + attempt * 400;
+
+    clearTimeout(faceTimer);
+    faceSvg.style.transform = "scale(" + scale + ")";
+    faceEl.style.opacity = intensite;
+    faceEl.classList.add("show");
+
+    faceTimer = setTimeout(()=>{
+      faceEl.style.opacity = 0;
+      faceEl.classList.remove("show");
+      faceSvg.style.transform = "scale(.55)"; // s'éloigne de nouveau
+    }, duree);
+  }
+
+  // --- climax : 3e erreur = visage complet + neige TV + son fort ---
+  let noiseRAF = null, audioCtx = null;
+
+  function drawNoise(){
+    const c = staticEl, ctx = c.getContext("2d");
+    const w = c.width, h = c.height;
+    const img = ctx.createImageData(w, h);
+    const buf = new Uint32Array(img.data.buffer);
+    for(let i = 0; i < buf.length; i++){
+      const v = (Math.random() * 255) | 0;
+      buf[i] = (255 << 24) | (v << 16) | (v << 8) | v;
+    }
+    ctx.putImageData(img, 0, 0);
+    noiseRAF = requestAnimationFrame(drawNoise);
+  }
+
+  function playStatic(duration){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === "suspended") audioCtx.resume();
+      const size = audioCtx.sampleRate * 2;
+      const buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer; src.loop = true;
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.55;                 // assez fort
+      src.connect(gain).connect(audioCtx.destination);
+      src.start();
+      setTimeout(()=>{
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+        try{ src.stop(audioCtx.currentTime + 0.5); }catch(e){}
+      }, duration);
+    }catch(e){ /* audio bloqué : on garde au moins le visuel */ }
+  }
+
+  function fullScare(){
+    const duree = 3200;
+    // visage complet, plein cadre, bien visible
+    clearTimeout(faceTimer);
+    faceSvg.style.transform = "scale(1.25)";
+    faceEl.style.opacity = 1;
+    faceEl.classList.add("show");
+
+    // neige TV
+    staticEl.width  = Math.floor(window.innerWidth  / 2);
+    staticEl.height = Math.floor(window.innerHeight / 2);
+    staticEl.classList.add("on");
+    if(noiseRAF) cancelAnimationFrame(noiseRAF);
+    drawNoise();
+
+    // son fort
+    playStatic(duree);
+
+    setTimeout(()=>{
+      staticEl.classList.remove("on");
+      cancelAnimationFrame(noiseRAF); noiseRAF = null;
+      faceEl.style.opacity = 0;
+      faceEl.classList.remove("show");
+      faceSvg.style.transform = "scale(.55)";
+    }, duree);
+  }
+
+  // --- foule de silhouettes en fond ---
+  const SIL =
+    '<svg viewBox="0 0 60 165">' +
+      '<circle cx="30" cy="18" r="12"/>' +
+      '<path d="M17 30 Q30 25 43 30 L41 92 L19 92 Z"/>' +   /* torse */
+      '<path d="M40 34 L51 70 L47 73 L35 42 Z"/>' +          /* bras */
+      '<path d="M21 90 L16 158 L25 158 L31 100 Z"/>' +       /* jambe arrière */
+      '<path d="M39 90 L46 158 L37 158 L30 100 Z"/>' +       /* jambe avant (enjambée) */
+    '</svg>';
+
+  function buildCrowd(){
+    const crowd = document.getElementById("crowd");
+    const N = 16;
+    for(let i = 0; i < N; i++){
+      const w = document.createElement("div");
+      w.className = "walker";
+      w.innerHTML = SIL;
+      const depth = Math.random();                 // 0 = loin, 1 = proche
+      const size  = 60 + depth * 150;              // taille selon distance
+      const dur   = 30 - depth * 13 + Math.random() * 6;  // proche = plus rapide
+      const bob   = 0.5 + Math.random() * 0.4;
+      w.style.height          = size + "px";
+      w.style.bottom          = ((1 - depth) * 26) + "vh";  // loin = plus haut
+      w.style.opacity         = 0.16 + depth * 0.5;
+      w.style.filter          = "brightness(" + (0.55 + depth * 0.7) + ")";
+      w.style.zIndex          = Math.floor(depth * 10);
+      w.style.animationDuration = dur + "s";
+      w.style.animationDelay    = (-Math.random() * dur) + "s";  // étalés sur l'écran
+      const svg = w.querySelector("svg");
+      svg.style.animationDuration = bob + "s";
+      svg.style.animationDelay    = (-Math.random() * bob) + "s";
+      crowd.appendChild(w);
+    }
+  }
+  buildCrowd();
+
+  // --- son sourd de pas (boucle ambiante) ---
+  let stepTimer = null;
+  function playStep(vol){
+    if(!audioCtx) return;
+    const dur  = 0.16;
+    const size = Math.floor(audioCtx.sampleRate * dur);
+    const buf  = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+    const d    = buf.getChannelData(0);
+    for(let i = 0; i < size; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / size, 2);
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const lp  = audioCtx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 160; // sourd
+    const g   = audioCtx.createGain(); g.gain.value = vol;
+    src.connect(lp).connect(g).connect(audioCtx.destination);
+    src.start();
+  }
+  function startFootsteps(){
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    if(stepTimer) return;
+    (function loopStep(){
+      playStep(0.08 + Math.random() * 0.07);       // pas étouffés, irréguliers (foule)
+      stepTimer = setTimeout(loopStep, 280 + Math.random() * 260);
+    })();
+  }
+  function stopFootsteps(){ clearTimeout(stepTimer); stepTimer = null; }
+
+  const fails = [
+    "CODE INCORRECT.",
+    "ACCÈS REFUSÉ.",
+    "ERREUR · TENTATIVE ENREGISTRÉE.",
+    "ILS SAVENT QUE VOUS ESSAYEZ.",
+    "MAUVAIS NUMÉRO. PARTEZ."
+  ];
+  let attempt = 0;
+
+  function tryLogin(){
+    const v = pinEl.value.trim();
+    if(v === CODE){
+      errEl.textContent = "";
+      numeroEl.textContent = "BIENVENUE NUMÉRO " + v;
+      loginEl.classList.add("hidden");
+      mainEl.classList.remove("hidden");
+      startCountdown();
+      startFootsteps();          // la foule se met en marche
+    } else {
+      errEl.textContent = fails[Math.min(attempt, fails.length-1)];
+      attempt++;
+      if(attempt >= 3) fullScare();   // 3e erreur (et + ) : visage complet + neige + son
+      else flashFace();               // 1re/2e : il s'approche
+      pinEl.value = "";
+      pinEl.focus();
+      document.body.animate(
+        [{filter:"none"},{filter:"invert(1)"},{filter:"none"}],
+        {duration:120}
+      );
+    }
+  }
+
+  enterEl.addEventListener("click", tryLogin);
+  pinEl.addEventListener("keydown", e=>{ if(e.key==="Enter") tryLogin(); });
+  window.addEventListener("load", ()=> pinEl.focus());
+
+  document.getElementById("logout").addEventListener("click", ()=>{
+    mainEl.classList.add("hidden");
+    loginEl.classList.remove("hidden");
+    pinEl.value = ""; errEl.textContent = ""; attempt = 0;
+    stopFootsteps();
+    pinEl.focus();
+  });
+
+  // ---- COMPTE À REBOURS ----
+  let timer = null;
+  function pad(n){ return String(n).padStart(2,"0"); }
+
+  function startCountdown(){
+    if(timer) clearInterval(timer);
+    update();
+    timer = setInterval(update, 1000);
+  }
+
+  function update(){
+    const diff = TARGET - Date.now();
+    if(diff <= 0){
+      clearInterval(timer);
+      document.getElementById("ctdWrap").classList.add("hidden");
+      document.getElementById("begun").classList.remove("hidden");
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById("d").textContent = pad(d);
+    document.getElementById("h").textContent = pad(h);
+    document.getElementById("m").textContent = pad(m);
+    document.getElementById("s").textContent = pad(s);
+  }
+
+  // petit glitch aléatoire sur tout l'écran
+  setInterval(()=>{
+    if(Math.random() > 0.93){
+      document.body.style.transform = "translate(" + (Math.random()*4-2) + "px,0)";
+      setTimeout(()=> document.body.style.transform = "", 80);
+    }
+  }, 1200);
+</script>
+</body>
+</html>
