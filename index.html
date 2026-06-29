@@ -259,6 +259,50 @@
     50%{ transform:translateY(-5px); }
   }
 
+  /* ---------- CHUCHOTEMENTS (mots fugaces) ---------- */
+  .whisper{
+    position:fixed;
+    z-index:7;
+    color:#5a0000;
+    font-size:13px; letter-spacing:3px;
+    text-shadow:0 0 8px #2a0000;
+    opacity:0;
+    pointer-events:none;
+    user-select:none;
+    transition:opacity 1.2s ease;
+    text-transform:lowercase;
+  }
+  .whisper.on{ opacity:.5; }
+
+  /* ---------- FLASH SUBLIMINAL ---------- */
+  #sublim{
+    position:fixed; inset:0;
+    z-index:8600;
+    display:flex; align-items:center; justify-content:center;
+    background:#000;
+    color:var(--rouge-vif);
+    font-size:clamp(40px,12vw,140px);
+    letter-spacing:8px;
+    opacity:0;
+    pointer-events:none;
+    visibility:hidden;
+  }
+  #sublim.flash{ opacity:1; visibility:visible; }
+
+  /* ---------- MESSAGE D'INACTIVITÉ ---------- */
+  #idle{
+    position:fixed; left:0; right:0; bottom:48px;
+    z-index:7;
+    text-align:center;
+    color:var(--rouge-vif);
+    font-size:13px; letter-spacing:3px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 1s ease;
+    animation:glitch .3s infinite;
+  }
+  #idle.on{ opacity:.75; }
+
   /* logout discret */
   .logout{
     position:absolute; top:14px; right:16px;
@@ -273,6 +317,10 @@
 
   <!-- ===== FOULE EN FOND ===== -->
   <div id="crowd" aria-hidden="true"></div>
+
+  <!-- ===== EFFETS PERTURBANTS ===== -->
+  <div id="sublim" aria-hidden="true"></div>
+  <div id="idle" aria-hidden="true"></div>
 
   <!-- ===== NEIGE TV (pas de signal) ===== -->
   <canvas id="static"></canvas>
@@ -377,6 +425,7 @@
       n'éteignez pas votre écran. ne parlez à personne. ne faites confiance à personne.<br>
       la règle n°1 : il n'y a pas de règles.
     </div>
+    <div id="watch" style="margin-top:22px;font-size:9px;letter-spacing:1px;color:#2a2a2a;line-height:1.9;"></div>
   </div>
 
 <script>
@@ -621,6 +670,103 @@
       setTimeout(()=> document.body.style.transform = "", 80);
     }
   }, 1200);
+
+  /* =================================================================
+     MICRO-DÉTAILS PERTURBANTS
+     ================================================================= */
+
+  // --- 1. Titre d'onglet vivant ---
+  const titres = [
+    "· · · accès restreint · · ·",
+    "il te regarde",
+    "ne pars pas",
+    "0000",
+    "derrière toi",
+    "tu es en retard",
+    "il reste peu de temps",
+    "·· ne ferme pas ··"
+  ];
+  let ti = 0;
+  setInterval(()=>{ document.title = titres[ti++ % titres.length]; }, 2600);
+
+  // quand on quitte l'onglet puis qu'on revient
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden){
+      document.title = "reviens.";
+    } else {
+      document.title = "tu es revenu.";
+      if(!mainEl.classList.contains("hidden")) whisper("on t'attendait");
+    }
+  });
+
+  // --- 2. Chuchotements fugaces ---
+  const mots = ["derrière toi","cours","il sait","trop tard","0000","ne regarde pas",
+                "tu l'as réveillé","plus près","ils arrivent","reste","ne respire pas"];
+  function whisper(txt){
+    const el = document.createElement("div");
+    el.className = "whisper";
+    el.textContent = txt || mots[Math.floor(Math.random()*mots.length)];
+    el.style.left = (5 + Math.random()*80) + "vw";
+    el.style.top  = (10 + Math.random()*75) + "vh";
+    el.style.fontSize = (11 + Math.random()*12) + "px";
+    document.body.appendChild(el);
+    requestAnimationFrame(()=> el.classList.add("on"));
+    setTimeout(()=> el.classList.remove("on"), 1400);
+    setTimeout(()=> el.remove(), 3000);
+  }
+  setInterval(()=>{ if(Math.random() > 0.7) whisper(); }, 5200);
+
+  // --- 3. Flash subliminal (1 image) ---
+  const sublim = document.getElementById("sublim");
+  const subMots = ["PARS","0000","IL TE VOIT","NON","COURS","TROP TARD"];
+  function flashSublim(){
+    sublim.textContent = subMots[Math.floor(Math.random()*subMots.length)];
+    sublim.classList.add("flash");
+    setTimeout(()=> sublim.classList.remove("flash"), 70); // ~1 image
+  }
+  setInterval(()=>{ if(Math.random() > 0.82) flashSublim(); }, 9000);
+
+  // --- 4. Détection d'inactivité ---
+  const idleEl = document.getElementById("idle");
+  const idleMsgs = ["pourquoi tu t'es arrêté ?","bouge.","il s'approche quand tu ne bouges pas.","tu es toujours là ?"];
+  let idleTimer = null;
+  function resetIdle(){
+    idleEl.classList.remove("on");
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{
+      idleEl.textContent = idleMsgs[Math.floor(Math.random()*idleMsgs.length)];
+      idleEl.classList.add("on");
+    }, 22000);
+  }
+  ["mousemove","keydown","click","touchstart"].forEach(ev=>
+    document.addEventListener(ev, resetIdle, {passive:true}));
+  resetIdle();
+
+  // --- 5. Glitch du compte à rebours (1 image de chiffres faux) ---
+  setInterval(()=>{
+    if(mainEl.classList.contains("hidden")) return;
+    if(Math.random() > 0.9){
+      const cible = ["d","h","m","s"][Math.floor(Math.random()*4)];
+      const el = document.getElementById(cible);
+      const vrai = el.textContent;
+      el.textContent = String(Math.floor(Math.random()*90)+10);
+      el.style.color = "#ff1a1a";
+      setTimeout(()=>{ el.textContent = vrai; el.style.color = ""; }, 110);
+    }
+  }, 3500);
+
+  // --- 6. Ligne de "surveillance" (vraies infos du visiteur) ---
+  (function(){
+    const w = document.getElementById("watch");
+    if(!w) return;
+    const now = new Date();
+    const fakeIp = "ADRESSE LOCALISÉE";
+    w.innerHTML =
+      "// vous êtes observé depuis : " + fakeIp + "<br>" +
+      "// appareil : " + (navigator.platform || "inconnu") +
+      " · écran " + screen.width + "×" + screen.height + "<br>" +
+      "// heure locale enregistrée : " + now.toLocaleString("fr-FR");
+  })();
 </script>
 </body>
 </html>
